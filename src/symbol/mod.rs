@@ -64,7 +64,7 @@ impl<'t> Symbol<'t> {
 
     /// Parse the symbol into the `SymbolData` it contains.
     #[inline]
-    pub fn parse(&self) -> Result<SymbolData<'t>> {
+    pub fn parse(&self) -> Result<SymbolData> {
         self.raw_bytes().pread_with(0, ())
     }
 
@@ -172,75 +172,75 @@ fn parse_optional_index(buf: &mut ParseBuffer<'_>) -> Result<Option<SymbolIndex>
 /// Information parsed from a [`Symbol`] record.
 #[non_exhaustive]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum SymbolData<'t> {
+pub enum SymbolData {
     /// End of a scope, such as a procedure.
     ScopeEnd,
     /// Name of the object file of this module.
-    ObjName(ObjNameSymbol<'t>),
+    ObjName(ObjNameSymbol),
     /// A Register variable.
-    RegisterVariable(RegisterVariableSymbol<'t>),
+    RegisterVariable(RegisterVariableSymbol),
     /// A constant value.
-    Constant(ConstantSymbol<'t>),
+    Constant(ConstantSymbol),
     /// A user defined type.
-    UserDefinedType(UserDefinedTypeSymbol<'t>),
+    UserDefinedType(UserDefinedTypeSymbol),
     /// A Register variable spanning multiple registers.
-    MultiRegisterVariable(MultiRegisterVariableSymbol<'t>),
+    MultiRegisterVariable(MultiRegisterVariableSymbol),
     /// Static data, such as a global variable.
-    Data(DataSymbol<'t>),
+    Data(DataSymbol),
     /// A public symbol with a mangled name.
-    Public(PublicSymbol<'t>),
+    Public(PublicSymbol),
     /// A procedure, such as a function or method.
-    Procedure(ProcedureSymbol<'t>),
+    Procedure(ProcedureSymbol),
     /// A managed procedure, such as a function or method.
-    ManagedProcedure(ManagedProcedureSymbol<'t>),
+    ManagedProcedure(ManagedProcedureSymbol),
     /// A thread local variable.
-    ThreadStorage(ThreadStorageSymbol<'t>),
+    ThreadStorage(ThreadStorageSymbol),
     /// Flags used to compile a module.
-    CompileFlags(CompileFlagsSymbol<'t>),
+    CompileFlags(CompileFlagsSymbol),
     /// A using namespace directive.
-    UsingNamespace(UsingNamespaceSymbol<'t>),
+    UsingNamespace(UsingNamespaceSymbol),
     /// Reference to a [`ProcedureSymbol`].
-    ProcedureReference(ProcedureReferenceSymbol<'t>),
+    ProcedureReference(ProcedureReferenceSymbol),
     /// Reference to an imported variable.
-    DataReference(DataReferenceSymbol<'t>),
+    DataReference(DataReferenceSymbol),
     /// Reference to an annotation.
-    AnnotationReference(AnnotationReferenceSymbol<'t>),
+    AnnotationReference(AnnotationReferenceSymbol),
     /// Reference to a managed procedure.
-    TokenReference(TokenReferenceSymbol<'t>),
+    TokenReference(TokenReferenceSymbol),
     /// Trampoline thunk.
     Trampoline(TrampolineSymbol),
     /// An exported symbol.
-    Export(ExportSymbol<'t>),
+    Export(ExportSymbol),
     /// A local symbol in optimized code.
-    Local(LocalSymbol<'t>),
+    Local(LocalSymbol),
     /// A managed local variable slot.
-    ManagedSlot(ManagedSlotSymbol<'t>),
+    ManagedSlot(ManagedSlotSymbol),
     /// Reference to build information.
     BuildInfo(BuildInfoSymbol),
     /// The callsite of an inlined function.
-    InlineSite(InlineSiteSymbol<'t>),
+    InlineSite(InlineSiteSymbol),
     /// End of an inline callsite.
     InlineSiteEnd,
     /// End of a procedure.
     ProcedureEnd,
     /// A label.
-    Label(LabelSymbol<'t>),
+    Label(LabelSymbol),
     /// A block.
-    Block(BlockSymbol<'t>),
+    Block(BlockSymbol),
     /// Data allocated relative to a register.
-    RegisterRelative(RegisterRelativeSymbol<'t>),
+    RegisterRelative(RegisterRelativeSymbol),
     /// A thunk.
-    Thunk(ThunkSymbol<'t>),
+    Thunk(ThunkSymbol),
     /// A block of separated code.
     SeparatedCode(SeparatedCodeSymbol),
     /// OEM information.
-    OEM(OemSymbol<'t>),
+    OEM(OemSymbol),
     /// Environment block split off from `S_COMPILE2`.
-    EnvBlock(EnvBlockSymbol<'t>),
+    EnvBlock(EnvBlockSymbol),
     /// A COFF section in a PE executable.
-    Section(SectionSymbol<'t>),
+    Section(SectionSymbol),
     /// A COFF group.
-    CoffGroup(CoffGroupSymbol<'t>),
+    CoffGroup(CoffGroupSymbol),
     /// A live range of a variable.
     DefRange(DefRangeSymbol),
     /// A live range of a sub field of a variable.
@@ -256,7 +256,7 @@ pub enum SymbolData<'t> {
     /// A live range of a variable related to a register.
     DefRangeRegisterRelative(DefRangeRegisterRelativeSymbol),
     /// A base pointer-relative variable.
-    BasePointerRelative(BasePointerRelativeSymbol<'t>),
+    BasePointerRelative(BasePointerRelativeSymbol),
     /// Extra frame and proc information.
     FrameProcedure(FrameProcedureSymbol),
     /// Indirect call site information.
@@ -275,34 +275,34 @@ pub enum SymbolData<'t> {
     FrameCookie(FrameCookieSymbol),
 }
 
-impl<'t> SymbolData<'t> {
+impl SymbolData {
     /// Returns the name of this symbol if it has one.
     #[must_use]
-    pub fn name(&self) -> Option<RawString<'t>> {
+    pub fn name(&self) -> Option<&str> {
         match self {
-            Self::ObjName(data) => Some(data.name),
-            Self::Constant(data) => Some(data.name),
-            Self::UserDefinedType(data) => Some(data.name),
-            Self::Data(data) => Some(data.name),
-            Self::Public(data) => Some(data.name),
-            Self::Procedure(data) => Some(data.name),
-            Self::ManagedProcedure(data) => data.name,
-            Self::ThreadStorage(data) => Some(data.name),
-            Self::UsingNamespace(data) => Some(data.name),
-            Self::ProcedureReference(data) => data.name,
-            Self::DataReference(data) => data.name,
-            Self::AnnotationReference(data) => Some(data.name),
-            Self::TokenReference(data) => Some(data.name),
-            Self::Export(data) => Some(data.name),
-            Self::Local(data) => Some(data.name),
-            Self::ManagedSlot(data) => Some(data.name),
-            Self::Label(data) => Some(data.name),
-            Self::Block(data) => Some(data.name),
-            Self::RegisterRelative(data) => Some(data.name),
-            Self::Thunk(data) => Some(data.name),
-            Self::Section(data) => Some(data.name),
-            Self::CoffGroup(data) => Some(data.name),
-            Self::BasePointerRelative(data) => Some(data.name),
+            Self::ObjName(data) => Some(&data.name),
+            Self::Constant(data) => Some(&data.name),
+            Self::UserDefinedType(data) => Some(&data.name),
+            Self::Data(data) => Some(&data.name),
+            Self::Public(data) => Some(&data.name),
+            Self::Procedure(data) => Some(&data.name),
+            Self::ManagedProcedure(data) => data.name.as_deref(),
+            Self::ThreadStorage(data) => Some(&data.name),
+            Self::UsingNamespace(data) => Some(&data.name),
+            Self::ProcedureReference(data) => data.name.as_deref(),
+            Self::DataReference(data) => data.name.as_deref(),
+            Self::AnnotationReference(data) => Some(&data.name),
+            Self::TokenReference(data) => Some(&data.name),
+            Self::Export(data) => Some(&data.name),
+            Self::Local(data) => Some(&data.name),
+            Self::ManagedSlot(data) => Some(&data.name),
+            Self::Label(data) => Some(&data.name),
+            Self::Block(data) => Some(&data.name),
+            Self::RegisterRelative(data) => Some(&data.name),
+            Self::Thunk(data) => Some(&data.name),
+            Self::Section(data) => Some(&data.name),
+            Self::CoffGroup(data) => Some(&data.name),
+            Self::BasePointerRelative(data) => Some(&data.name),
             Self::ScopeEnd
             | Self::RegisterVariable(_)
             | Self::MultiRegisterVariable(_)
@@ -334,7 +334,7 @@ impl<'t> SymbolData<'t> {
     }
 }
 
-impl<'t> TryFromCtx<'t> for SymbolData<'t> {
+impl<'t> TryFromCtx<'t> for SymbolData {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], _ctx: ()) -> Result<(Self, usize)> {
@@ -424,19 +424,19 @@ impl<'t> TryFromCtx<'t> for SymbolData<'t> {
 /// A Register variable.
 ///
 /// Symbol kind `S_REGISTER`, or `S_REGISTER_ST`
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct RegisterVariableSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RegisterVariableSymbol {
     /// Identifier of the variable type.
     pub type_index: TypeIndex,
     /// The register this variable is stored in.
     pub register: Register,
     /// Name of the variable.
-    pub name: RawString<'t>,
+    pub name: String,
     /// Parameter slot
     pub slot: Option<i32>,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for RegisterVariableSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for RegisterVariableSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -460,7 +460,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for RegisterVariableSymbol<'t> {
             Self {
                 type_index,
                 register,
-                name,
+                name: name.to_string().to_string(),
                 slot,
             },
             buf.pos(),
@@ -472,14 +472,14 @@ impl<'t> TryFromCtx<'t, SymbolKind> for RegisterVariableSymbol<'t> {
 ///
 /// Symbol kind `S_MANYREG`, `S_MANYREG_ST`, `S_MANYREG2`, or `S_MANYREG2_ST`.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct MultiRegisterVariableSymbol<'t> {
+pub struct MultiRegisterVariableSymbol {
     /// Identifier of the variable type.
     pub type_index: TypeIndex,
     /// Most significant register first.
-    pub registers: Vec<(Register, RawString<'t>)>,
+    pub registers: Vec<(Register, String)>,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for MultiRegisterVariableSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for MultiRegisterVariableSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -493,7 +493,10 @@ impl<'t> TryFromCtx<'t, SymbolKind> for MultiRegisterVariableSymbol<'t> {
 
         let mut registers = Vec::with_capacity(count as usize);
         for _ in 0..count {
-            registers.push((buf.parse()?, parse_symbol_name(&mut buf, kind)?));
+            registers.push((
+                buf.parse()?,
+                parse_symbol_name(&mut buf, kind)?.to_string().to_string(),
+            ));
         }
 
         let symbol = MultiRegisterVariableSymbol {
@@ -514,8 +517,8 @@ const CVPSF_MSIL: u32 = 0x8;
 /// A public symbol with a mangled name.
 ///
 /// Symbol kind `S_PUB32`, or `S_PUB32_ST`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct PublicSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PublicSymbol {
     /// The public symbol refers to executable code.
     pub code: bool,
     /// The public symbol is a function.
@@ -527,10 +530,10 @@ pub struct PublicSymbol<'t> {
     /// Start offset of the symbol.
     pub offset: PdbInternalSectionOffset,
     /// Mangled name of the symbol.
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for PublicSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for PublicSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -543,7 +546,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for PublicSymbol<'t> {
             managed: flags & CVPSF_MANAGED != 0,
             msil: flags & CVPSF_MSIL != 0,
             offset: buf.parse()?,
-            name: parse_symbol_name(&mut buf, kind)?,
+            name: parse_symbol_name(&mut buf, kind)?.to_string().to_string(),
         };
 
         Ok((symbol, buf.pos()))
@@ -557,8 +560,8 @@ impl<'t> TryFromCtx<'t, SymbolKind> for PublicSymbol<'t> {
 ///  - `S_GDATA32` and `S_GDATA32_ST` for global unmanaged data
 ///  - `S_LMANDATA32` and `S_LMANDATA32_ST` for local managed data
 ///  - `S_GMANDATA32` and `S_GMANDATA32_ST` for global managed data
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct DataSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DataSymbol {
     /// Whether this data is global or local.
     pub global: bool,
     /// Whether this data is managed or unmanaged.
@@ -568,10 +571,10 @@ pub struct DataSymbol<'t> {
     /// Code offset of the start of the data region.
     pub offset: PdbInternalSectionOffset,
     /// Name of the data variable.
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for DataSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for DataSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -585,7 +588,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for DataSymbol<'t> {
             ),
             type_index: buf.parse()?,
             offset: buf.parse()?,
-            name: parse_symbol_name(&mut buf, kind)?,
+            name: parse_symbol_name(&mut buf, kind)?.to_string().to_string(),
         };
 
         Ok((symbol, buf.pos()))
@@ -595,8 +598,8 @@ impl<'t> TryFromCtx<'t, SymbolKind> for DataSymbol<'t> {
 /// Reference to an imported procedure.
 ///
 /// Symbol kind `S_PROCREF`, `S_PROCREF_ST`, `S_LPROCREF`, or `S_LPROCREF_ST`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ProcedureReferenceSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProcedureReferenceSymbol {
     /// Whether the referenced procedure is global or local.
     pub global: bool,
     /// SUC of the name.
@@ -609,10 +612,10 @@ pub struct ProcedureReferenceSymbol<'t> {
     /// containing the actual symbol.
     pub module: Option<usize>,
     /// Name of the procedure reference.
-    pub name: Option<RawString<'t>>,
+    pub name: Option<String>,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for ProcedureReferenceSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for ProcedureReferenceSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -630,7 +633,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for ProcedureReferenceSymbol<'t> {
             sum_name,
             symbol_index,
             module,
-            name,
+            name: name.map(|x| x.to_string().to_string()),
         };
 
         Ok((symbol, buf.pos()))
@@ -640,8 +643,8 @@ impl<'t> TryFromCtx<'t, SymbolKind> for ProcedureReferenceSymbol<'t> {
 /// Reference to an imported variable.
 ///
 /// Symbol kind `S_DATAREF`, or `S_DATAREF_ST`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct DataReferenceSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DataReferenceSymbol {
     /// SUC of the name.
     pub sum_name: u32,
     /// Symbol index of the referenced [`DataSymbol`].
@@ -652,10 +655,10 @@ pub struct DataReferenceSymbol<'t> {
     /// containing the actual symbol.
     pub module: Option<usize>,
     /// Name of the data reference.
-    pub name: Option<RawString<'t>>,
+    pub name: Option<String>,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for DataReferenceSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for DataReferenceSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -671,7 +674,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for DataReferenceSymbol<'t> {
             sum_name,
             symbol_index,
             module,
-            name,
+            name: name.map(|x| x.to_string().to_string()),
         };
 
         Ok((symbol, buf.pos()))
@@ -681,8 +684,8 @@ impl<'t> TryFromCtx<'t, SymbolKind> for DataReferenceSymbol<'t> {
 /// Reference to an annotation.
 ///
 /// Symbol kind `S_ANNOTATIONREF`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct AnnotationReferenceSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AnnotationReferenceSymbol {
     /// SUC of the name.
     pub sum_name: u32,
     /// Symbol index of the referenced symbol.
@@ -693,10 +696,10 @@ pub struct AnnotationReferenceSymbol<'t> {
     /// containing the actual symbol.
     pub module: Option<usize>,
     /// Name of the annotation reference.
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for AnnotationReferenceSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for AnnotationReferenceSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -706,7 +709,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for AnnotationReferenceSymbol<'t> {
         let symbol_index = buf.parse()?;
         // 1-based module index in the input - presumably 0 means invalid / not present
         let module = buf.parse::<u16>()?.checked_sub(1).map(usize::from);
-        let name = parse_symbol_name(&mut buf, kind)?;
+        let name = parse_symbol_name(&mut buf, kind)?.to_string().to_string();
 
         let symbol = AnnotationReferenceSymbol {
             sum_name,
@@ -722,8 +725,8 @@ impl<'t> TryFromCtx<'t, SymbolKind> for AnnotationReferenceSymbol<'t> {
 /// Reference to a managed procedure symbol (`S_LMANPROC` or `S_GMANPROC`).
 ///
 /// Symbol kind `S_TOKENREF`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct TokenReferenceSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TokenReferenceSymbol {
     /// SUC of the name.
     pub sum_name: u32,
     /// Symbol index of the referenced [`ManagedProcedureSymbol`].
@@ -734,10 +737,10 @@ pub struct TokenReferenceSymbol<'t> {
     /// containing the actual symbol.
     pub module: Option<usize>,
     /// Name of the procedure reference.
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for TokenReferenceSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for TokenReferenceSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -747,7 +750,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for TokenReferenceSymbol<'t> {
         let symbol_index = buf.parse()?;
         // 1-based module index in the input - presumably 0 means invalid / not present
         let module = buf.parse::<u16>()?.checked_sub(1).map(usize::from);
-        let name = parse_symbol_name(&mut buf, kind)?;
+        let name = parse_symbol_name(&mut buf, kind)?.to_string().to_string();
 
         let symbol = TokenReferenceSymbol {
             sum_name,
@@ -819,8 +822,8 @@ impl TryFromCtx<'_, SymbolKind> for TrampolineSymbol {
 /// A constant value.
 ///
 /// Symbol kind `S_CONSTANT`, or `S_CONSTANT_ST`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ConstantSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConstantSymbol {
     /// Whether this constant has metadata type information.
     pub managed: bool,
     /// The type of this constant or metadata token.
@@ -828,10 +831,10 @@ pub struct ConstantSymbol<'t> {
     /// The value of this constant.
     pub value: Variant,
     /// Name of the constant.
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for ConstantSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for ConstantSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -841,7 +844,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for ConstantSymbol<'t> {
             managed: kind == S_MANCONSTANT,
             type_index: buf.parse()?,
             value: buf.parse()?,
-            name: parse_symbol_name(&mut buf, kind)?,
+            name: parse_symbol_name(&mut buf, kind)?.to_string().to_string(),
         };
 
         Ok((symbol, buf.pos()))
@@ -851,15 +854,15 @@ impl<'t> TryFromCtx<'t, SymbolKind> for ConstantSymbol<'t> {
 /// A user defined type.
 ///
 /// Symbol kind `S_UDT`, or `S_UDT_ST`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct UserDefinedTypeSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UserDefinedTypeSymbol {
     /// Identifier of the type.
     pub type_index: TypeIndex,
     /// Name of the type.
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for UserDefinedTypeSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for UserDefinedTypeSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -867,7 +870,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for UserDefinedTypeSymbol<'t> {
 
         let symbol = UserDefinedTypeSymbol {
             type_index: buf.parse()?,
-            name: parse_symbol_name(&mut buf, kind)?,
+            name: parse_symbol_name(&mut buf, kind)?.to_string().to_string(),
         };
 
         Ok((symbol, buf.pos()))
@@ -879,8 +882,8 @@ impl<'t> TryFromCtx<'t, SymbolKind> for UserDefinedTypeSymbol<'t> {
 /// Symbol kinds:
 ///  - `S_LTHREAD32`, `S_LTHREAD32_ST` for local thread storage.
 ///  - `S_GTHREAD32`, or `S_GTHREAD32_ST` for global thread storage.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ThreadStorageSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ThreadStorageSymbol {
     /// Whether this is a global or local thread storage.
     pub global: bool,
     /// Identifier of the stored type.
@@ -888,10 +891,10 @@ pub struct ThreadStorageSymbol<'t> {
     /// Code offset of the thread local.
     pub offset: PdbInternalSectionOffset,
     /// Name of the thread local.
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for ThreadStorageSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for ThreadStorageSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -901,7 +904,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for ThreadStorageSymbol<'t> {
             global: matches!(kind, S_GTHREAD32 | S_GTHREAD32_ST),
             type_index: buf.parse()?,
             offset: buf.parse()?,
-            name: parse_symbol_name(&mut buf, kind)?,
+            name: parse_symbol_name(&mut buf, kind)?.to_string().to_string(),
         };
 
         Ok((symbol, buf.pos()))
@@ -969,8 +972,8 @@ impl<'t> TryFromCtx<'t, Endian> for ProcedureFlags {
 ///  - `S_LPROC32_DPC` for DPC procedures
 ///  - `S_GPROC32_ID`, `S_LPROC32_ID`, `S_LPROC32_DPC_ID` for procedures referencing types from the
 ///    ID stream rather than the Type stream.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ProcedureSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProcedureSymbol {
     /// Whether this is a global or local procedure.
     pub global: bool,
     /// Indicates Deferred Procedure Calls (DPC).
@@ -997,10 +1000,10 @@ pub struct ProcedureSymbol<'t> {
     /// Detailed flags of this procedure.
     pub flags: ProcedureFlags,
     /// The full, demangled name of the procedure.
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for ProcedureSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for ProcedureSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -1018,7 +1021,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for ProcedureSymbol<'t> {
             type_index: buf.parse()?,
             offset: buf.parse()?,
             flags: buf.parse()?,
-            name: parse_symbol_name(&mut buf, kind)?,
+            name: parse_symbol_name(&mut buf, kind)?.to_string().to_string(),
         };
 
         Ok((symbol, buf.pos()))
@@ -1032,8 +1035,8 @@ impl<'t> TryFromCtx<'t, SymbolKind> for ProcedureSymbol<'t> {
 /// - `S_LMANPROC`, `S_LMANPROCIA64` for local procedures
 ///
 /// `S_GMANPROCIA64` and `S_LMANPROCIA64` are only mentioned, there is no available source.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ManagedProcedureSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagedProcedureSymbol {
     /// Whether this is a global or local procedure.
     pub global: bool,
     /// The parent scope that this procedure is nested in.
@@ -1057,10 +1060,10 @@ pub struct ManagedProcedureSymbol<'t> {
     /// Register return value is in (may not be used for all archs).
     pub return_register: u16,
     /// Optional name of the procedure.
-    pub name: Option<RawString<'t>>,
+    pub name: Option<String>,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for ManagedProcedureSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for ManagedProcedureSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -1078,7 +1081,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for ManagedProcedureSymbol<'t> {
             offset: buf.parse()?,
             flags: buf.parse()?,
             return_register: buf.parse()?,
-            name: parse_optional_name(&mut buf, kind)?,
+            name: parse_optional_name(&mut buf, kind)?.map(|x| x.to_string().to_string()),
         };
 
         Ok((symbol, buf.pos()))
@@ -1088,8 +1091,8 @@ impl<'t> TryFromCtx<'t, SymbolKind> for ManagedProcedureSymbol<'t> {
 /// The callsite of an inlined function.
 ///
 /// Symbol kind `S_INLINESITE`, or `S_INLINESITE2`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct InlineSiteSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InlineSiteSymbol {
     /// Index of the parent function.
     ///
     /// This might either be a [`ProcedureSymbol`] or another `InlineSiteSymbol`.
@@ -1101,10 +1104,10 @@ pub struct InlineSiteSymbol<'t> {
     /// The total number of invocations of the inline function.
     pub invocations: Option<u32>,
     /// Binary annotations containing the line program of this call site.
-    pub annotations: BinaryAnnotations<'t>,
+    pub annotations: BinaryAnnotations,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for InlineSiteSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for InlineSiteSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -1149,15 +1152,15 @@ impl<'t> TryFromCtx<'t, SymbolKind> for BuildInfoSymbol {
 /// Name of the object file of this module.
 ///
 /// Symbol kind `S_OBJNAME`, or `S_OBJNAME_ST`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ObjNameSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ObjNameSymbol {
     /// Signature.
     pub signature: u32,
     /// Path to the object file.
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for ObjNameSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for ObjNameSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -1165,7 +1168,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for ObjNameSymbol<'t> {
 
         let symbol = ObjNameSymbol {
             signature: buf.parse()?,
-            name: parse_symbol_name(&mut buf, kind)?,
+            name: parse_symbol_name(&mut buf, kind)?.to_string().to_string(),
         };
 
         Ok((symbol, buf.pos()))
@@ -1263,8 +1266,8 @@ impl<'t> TryFromCtx<'t, SymbolKind> for CompileFlags {
 /// Flags used to compile a module.
 ///
 /// Symbol kind `S_COMPILE2`, `S_COMPILE2_ST`, or `S_COMPILE3`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct CompileFlagsSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CompileFlagsSymbol {
     /// The source code language.
     pub language: SourceLanguage,
     /// Compiler flags.
@@ -1276,11 +1279,11 @@ pub struct CompileFlagsSymbol<'t> {
     /// Version of the compiler backend.
     pub backend_version: CompilerVersion,
     /// Display name of the compiler.
-    pub version_string: RawString<'t>,
+    pub version_string: String,
     // TODO: Command block for S_COMPILE2?
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for CompileFlagsSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for CompileFlagsSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -1293,7 +1296,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for CompileFlagsSymbol<'t> {
             cpu_type: buf.parse()?,
             frontend_version: buf.parse_with(has_qfe)?,
             backend_version: buf.parse_with(has_qfe)?,
-            version_string: parse_symbol_name(&mut buf, kind)?,
+            version_string: parse_symbol_name(&mut buf, kind)?.to_string().to_string(),
         };
 
         Ok((symbol, buf.pos()))
@@ -1303,20 +1306,20 @@ impl<'t> TryFromCtx<'t, SymbolKind> for CompileFlagsSymbol<'t> {
 /// A using namespace directive.
 ///
 /// Symbol kind `S_UNAMESPACE`, or `S_UNAMESPACE_ST`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct UsingNamespaceSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UsingNamespaceSymbol {
     /// The name of the imported namespace.
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for UsingNamespaceSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for UsingNamespaceSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
         let mut buf = ParseBuffer::from(this);
 
         let symbol = UsingNamespaceSymbol {
-            name: parse_symbol_name(&mut buf, kind)?,
+            name: parse_symbol_name(&mut buf, kind)?.to_string().to_string(),
         };
 
         Ok((symbol, buf.pos()))
@@ -1388,19 +1391,19 @@ impl<'t> TryFromCtx<'t, Endian> for LocalVariableFlags {
 /// A local symbol in optimized code.
 ///
 /// Symbol kind `S_LOCAL`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct LocalSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LocalSymbol {
     /// The type of the symbol.
     pub type_index: TypeIndex,
     /// Flags for this symbol.
     pub flags: LocalVariableFlags,
     /// Name of the symbol.
-    pub name: RawString<'t>,
+    pub name: String,
     /// Parameter slot
     pub slot: Option<i32>,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for LocalSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for LocalSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -1424,7 +1427,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for LocalSymbol<'t> {
             Self {
                 type_index,
                 flags,
-                name,
+                name: name.to_string().to_string(),
                 slot,
             },
             buf.pos(),
@@ -1435,8 +1438,8 @@ impl<'t> TryFromCtx<'t, SymbolKind> for LocalSymbol<'t> {
 /// A managed local variable slot.
 ///
 /// Symbol kind `S_MANSLOT`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ManagedSlotSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagedSlotSymbol {
     /// Slot index.
     pub slot: u32,
     /// Type index or metadata token.
@@ -1446,10 +1449,10 @@ pub struct ManagedSlotSymbol<'t> {
     /// Local variable flags.
     pub flags: LocalVariableFlags,
     /// Length-prefixed name of the variable.
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for ManagedSlotSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for ManagedSlotSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -1460,7 +1463,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for ManagedSlotSymbol<'t> {
             type_index: buf.parse()?,
             offset: buf.parse()?,
             flags: buf.parse()?,
-            name: parse_symbol_name(&mut buf, kind)?,
+            name: parse_symbol_name(&mut buf, kind)?.to_string().to_string(),
         };
 
         Ok((symbol, buf.pos()))
@@ -1533,17 +1536,17 @@ impl<'t> TryFromCtx<'t, Endian> for ExportSymbolFlags {
 /// An exported symbol.
 ///
 /// Symbol kind `S_EXPORT`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ExportSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExportSymbol {
     /// Ordinal of the symbol.
     pub ordinal: u16,
     /// Flags declaring the type of the exported symbol.
     pub flags: ExportSymbolFlags,
     /// The name of the exported symbol.
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for ExportSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for ExportSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -1552,7 +1555,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for ExportSymbol<'t> {
         let symbol = ExportSymbol {
             ordinal: buf.parse()?,
             flags: buf.parse()?,
-            name: parse_symbol_name(&mut buf, kind)?,
+            name: parse_symbol_name(&mut buf, kind)?.to_string().to_string(),
         };
 
         Ok((symbol, buf.pos()))
@@ -1562,17 +1565,17 @@ impl<'t> TryFromCtx<'t, SymbolKind> for ExportSymbol<'t> {
 /// A label symbol.
 ///
 /// Symbol kind `S_LABEL32`, `S_LABEL16`, or `S_LABEL32_ST`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct LabelSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LabelSymbol {
     /// Code offset of the start of this label.
     pub offset: PdbInternalSectionOffset,
     /// Detailed flags of this label.
     pub flags: ProcedureFlags,
     /// Name of the symbol.
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for LabelSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for LabelSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -1581,7 +1584,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for LabelSymbol<'t> {
         let symbol = LabelSymbol {
             offset: buf.parse()?,
             flags: buf.parse()?,
-            name: parse_symbol_name(&mut buf, kind)?,
+            name: parse_symbol_name(&mut buf, kind)?.to_string().to_string(),
         };
 
         Ok((symbol, buf.pos()))
@@ -1591,8 +1594,8 @@ impl<'t> TryFromCtx<'t, SymbolKind> for LabelSymbol<'t> {
 /// A block symbol.
 ///
 /// Symbol kind `S_BLOCK32`, or `S_BLOCK32_ST`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct BlockSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BlockSymbol {
     /// The parent scope that this block is nested in.
     pub parent: SymbolIndex,
     /// The end symbol of this block.
@@ -1602,10 +1605,10 @@ pub struct BlockSymbol<'t> {
     /// Code offset of the start of this label.
     pub offset: PdbInternalSectionOffset,
     /// The block name.
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for BlockSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for BlockSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -1616,7 +1619,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for BlockSymbol<'t> {
             end: buf.parse()?,
             len: buf.parse()?,
             offset: buf.parse()?,
-            name: parse_symbol_name(&mut buf, kind)?,
+            name: parse_symbol_name(&mut buf, kind)?.to_string().to_string(),
         };
 
         Ok((symbol, buf.pos()))
@@ -1628,8 +1631,8 @@ impl<'t> TryFromCtx<'t, SymbolKind> for BlockSymbol<'t> {
 /// The address of the variable is the value in the register + offset (e.g. %EBP + 8).
 ///
 /// Symbol kind `S_REGREL32`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct RegisterRelativeSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RegisterRelativeSymbol {
     /// The variable offset.
     pub offset: i32,
     /// The type of the variable.
@@ -1637,12 +1640,12 @@ pub struct RegisterRelativeSymbol<'t> {
     /// The register this variable address is relative to.
     pub register: Register,
     /// The variable name.
-    pub name: RawString<'t>,
+    pub name: String,
     /// Parameter slot
     pub slot: Option<i32>,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for RegisterRelativeSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for RegisterRelativeSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -1668,7 +1671,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for RegisterRelativeSymbol<'t> {
                 offset,
                 type_index,
                 register,
-                name,
+                name: name.to_string().to_string(),
                 slot,
             },
             buf.pos(),
@@ -1677,20 +1680,20 @@ impl<'t> TryFromCtx<'t, SymbolKind> for RegisterRelativeSymbol<'t> {
 }
 
 /// Thunk adjustor
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ThunkAdjustor<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ThunkAdjustor {
     delta: u16,
-    target: RawString<'t>,
+    target: String,
 }
 
 /// A thunk kind
 #[non_exhaustive]
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ThunkKind<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ThunkKind {
     /// Standard thunk
     NoType,
     /// "this" adjustor thunk with delta and target
-    Adjustor(ThunkAdjustor<'t>),
+    Adjustor(ThunkAdjustor),
     /// Virtual call thunk with table entry
     VCall(u16),
     /// pcode thunk
@@ -1704,8 +1707,8 @@ pub enum ThunkKind<'t> {
 /// A thunk symbol.
 ///
 /// Symbol kind `S_THUNK32`, or `S_THUNK32_ST`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ThunkSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ThunkSymbol {
     /// The parent scope that this thunk is nested in.
     pub parent: Option<SymbolIndex>,
     /// The end symbol of this thunk.
@@ -1717,12 +1720,12 @@ pub struct ThunkSymbol<'t> {
     /// The length of the thunk.
     pub len: u16,
     /// The kind of the thunk.
-    pub kind: ThunkKind<'t>,
+    pub kind: ThunkKind,
     /// The thunk name.
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for ThunkSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for ThunkSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -1734,13 +1737,13 @@ impl<'t> TryFromCtx<'t, SymbolKind> for ThunkSymbol<'t> {
         let offset = buf.parse()?;
         let len = buf.parse()?;
         let ord = buf.parse::<u8>()?;
-        let name = parse_symbol_name(&mut buf, kind)?;
+        let name = parse_symbol_name(&mut buf, kind)?.to_string().to_string();
 
         let kind = match ord {
             0 => ThunkKind::NoType,
             1 => ThunkKind::Adjustor(ThunkAdjustor {
                 delta: buf.parse::<u16>()?,
-                target: buf.parse_cstring()?,
+                target: buf.parse_cstring()?.to_string().to_string(),
             }),
             2 => ThunkKind::VCall(buf.parse::<u16>()?),
             3 => ThunkKind::PCode,
@@ -1844,10 +1847,10 @@ impl<'t> TryFromCtx<'t, SymbolKind> for SeparatedCodeSymbol {
 /// An OEM symbol.
 ///
 /// Symbol kind `S_OEM`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct OemSymbol<'t> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OemSymbol {
     /// OEM's identifier (16B GUID).
-    pub id_oem: RawString<'t>,
+    pub id_oem: String,
     /// Type index.
     pub type_index: TypeIndex,
     /// User data with forced 4B-alignment.
@@ -1856,14 +1859,14 @@ pub struct OemSymbol<'t> {
     pub rgl: u32,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for OemSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for OemSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], _kind: SymbolKind) -> Result<(Self, usize)> {
         let mut buf = ParseBuffer::from(this);
 
         let symbol = OemSymbol {
-            id_oem: buf.parse_cstring()?,
+            id_oem: buf.parse_cstring()?.to_string().to_string(),
             type_index: buf.parse()?,
             rgl: buf.parse()?,
         };
@@ -1876,24 +1879,24 @@ impl<'t> TryFromCtx<'t, SymbolKind> for OemSymbol<'t> {
 ///
 /// Symbol kind `S_ENVBLOCK`.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct EnvBlockSymbol<'t> {
+pub struct EnvBlockSymbol {
     /// EC flag (previously called `rev`).
     pub edit_and_continue: bool,
     /// Sequence of zero-terminated command strings.
-    pub rgsz: Vec<RawString<'t>>,
+    pub rgsz: Vec<String>,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for EnvBlockSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for EnvBlockSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
         let mut buf = ParseBuffer::from(this);
         let flags: u8 = buf.parse()?;
 
-        let mut strings: Vec<RawString<'t>> = Vec::new();
+        let mut strings = Vec::new();
 
         while !buf.is_empty() {
-            strings.push(parse_symbol_name(&mut buf, kind)?);
+            strings.push(parse_symbol_name(&mut buf, kind)?.to_string().to_string());
         }
 
         let symbol = EnvBlockSymbol {
@@ -1909,7 +1912,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for EnvBlockSymbol<'t> {
 ///
 /// Symbol kind `S_SECTION`.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SectionSymbol<'t> {
+pub struct SectionSymbol {
     /// Section number.
     pub isec: u16,
     ///  Alignment of this section (power of 2).
@@ -1923,10 +1926,10 @@ pub struct SectionSymbol<'t> {
     /// Section characteristics.
     pub characteristics: SectionCharacteristics,
     /// Section name.
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for SectionSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for SectionSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -1939,7 +1942,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for SectionSymbol<'t> {
             rva: buf.parse()?,
             cb: buf.parse()?,
             characteristics: buf.parse()?,
-            name: parse_symbol_name(&mut buf, kind)?,
+            name: parse_symbol_name(&mut buf, kind)?.to_string().to_string(),
         };
 
         Ok((symbol, buf.pos()))
@@ -1950,7 +1953,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for SectionSymbol<'t> {
 ///
 /// Symbol kind `S_COFFGROUP`.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CoffGroupSymbol<'t> {
+pub struct CoffGroupSymbol {
     /// COFF group's CB.
     pub cb: u32,
     /// COFF group characteristics.
@@ -1958,10 +1961,10 @@ pub struct CoffGroupSymbol<'t> {
     /// Symbol offset.
     pub offset: PdbInternalSectionOffset,
     /// COFF group name.
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for CoffGroupSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for CoffGroupSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -1971,7 +1974,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for CoffGroupSymbol<'t> {
             cb: buf.parse()?,
             characteristics: buf.parse()?,
             offset: buf.parse()?,
-            name: parse_symbol_name(&mut buf, kind)?,
+            name: parse_symbol_name(&mut buf, kind)?.to_string().to_string(),
         };
 
         Ok((symbol, buf.pos()))
@@ -2315,18 +2318,18 @@ impl TryFromCtx<'_, SymbolKind> for DefRangeRegisterRelativeSymbol {
 ///
 /// Symbol type `S_BPREL32`, `S_BPREL32_ST`, `S_BPREL16`, `S_BPREL32_16T`
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct BasePointerRelativeSymbol<'t> {
+pub struct BasePointerRelativeSymbol {
     /// BP-relative offset
     pub offset: i32,
     /// Type index or Metadata token
     pub type_index: TypeIndex,
     /// Length-prefixed name
-    pub name: RawString<'t>,
+    pub name: String,
     /// Parameter slot
     pub slot: Option<i32>,
 }
 
-impl<'t> TryFromCtx<'t, SymbolKind> for BasePointerRelativeSymbol<'t> {
+impl<'t> TryFromCtx<'t, SymbolKind> for BasePointerRelativeSymbol {
     type Error = Error;
 
     fn try_from_ctx(this: &'t [u8], kind: SymbolKind) -> Result<(Self, usize)> {
@@ -2354,7 +2357,7 @@ impl<'t> TryFromCtx<'t, SymbolKind> for BasePointerRelativeSymbol<'t> {
             Self {
                 offset,
                 type_index,
-                name,
+                name: name.to_string().to_string(),
                 slot,
             },
             buf.pos(),

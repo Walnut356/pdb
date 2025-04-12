@@ -1114,7 +1114,7 @@ pub struct InlineeLineIterator<'a> {
 impl<'a> InlineeLineIterator<'a> {
     fn new(
         parent_offset: PdbInternalSectionOffset,
-        inline_site: &InlineSiteSymbol<'a>,
+        inline_site: &'a InlineSiteSymbol,
         inlinee_line: InlineeSourceLine<'a>,
     ) -> Self {
         Self {
@@ -1257,7 +1257,7 @@ impl<'a> Inlinee<'a> {
     pub fn lines(
         &self,
         parent_offset: PdbInternalSectionOffset,
-        inline_site: &InlineSiteSymbol<'a>,
+        inline_site: &'a InlineSiteSymbol,
     ) -> InlineeLineIterator<'a> {
         InlineeLineIterator::new(parent_offset, inline_site, self.0)
     }

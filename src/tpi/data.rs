@@ -14,38 +14,38 @@ use crate::tpi::primitive::*;
 /// Encapsulates parsed data about a `Type`.
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TypeData<'t> {
+pub enum TypeData {
     Primitive(PrimitiveType),
-    Class(ClassType<'t>),
-    Member(MemberType<'t>),
+    Class(ClassType),
+    Member(MemberType),
     MemberFunction(MemberFunctionType),
-    OverloadedMethod(OverloadedMethodType<'t>),
-    Method(MethodType<'t>),
-    StaticMember(StaticMemberType<'t>),
-    Nested(NestedType<'t>),
+    OverloadedMethod(OverloadedMethodType),
+    Method(MethodType),
+    StaticMember(StaticMemberType),
+    Nested(NestedType),
     BaseClass(BaseClassType),
     VirtualBaseClass(VirtualBaseClassType),
-    VirtualFunctionTable(VirtualFunctionTableType<'t>),
+    VirtualFunctionTable(VirtualFunctionTableType),
     VirtualTableShape(VirtualTableShapeType),
     VirtualFunctionTablePointer(VirtualFunctionTablePointerType),
     Procedure(ProcedureType),
     Pointer(PointerType),
     Modifier(ModifierType),
-    Enumeration(EnumerationType<'t>),
-    Enumerate(EnumerateType<'t>),
+    Enumeration(EnumerationType),
+    Enumerate(EnumerateType),
     Array(ArrayType),
-    Union(UnionType<'t>),
-    Alias(AliasType<'t>),
+    Union(UnionType),
+    Alias(AliasType),
     Bitfield(BitfieldType),
-    FieldList(FieldList<'t>),
+    FieldList(FieldList),
     ArgumentList(ArgumentList),
     MethodList(MethodList),
 }
 
-impl<'t> TypeData<'t> {
+impl TypeData {
     /// Return the name of this `TypeData`, if any
     #[must_use]
-    pub fn name(&self) -> Option<RawString<'t>> {
+    pub fn name(&self) -> Option<&str> {
         let name = match self {
             Self::Class(ClassType { ref name, .. })
             | Self::Member(MemberType { ref name, .. })
@@ -59,12 +59,12 @@ impl<'t> TypeData<'t> {
             _ => return None,
         };
 
-        Some(*name)
+        Some(name)
     }
 }
 
 /// Parse a type out of a `ParseBuffer`.
-pub(crate) fn parse_type_data<'t>(buf: &mut ParseBuffer<'t>) -> Result<TypeData<'t>> {
+pub(crate) fn parse_type_data<'t>(buf: &mut ParseBuffer<'t>) -> Result<TypeData> {
     let leaf = buf.parse_u16()?;
 
     match leaf {
@@ -86,12 +86,12 @@ pub(crate) fn parse_type_data<'t>(buf: &mut ParseBuffer<'t>) -> Result<TypeData<
                 derived_from: parse_optional_type_index(buf)?,
                 vtable_shape: parse_optional_type_index(buf)?,
                 size: parse_unsigned(buf)?,
-                name: parse_string(leaf, buf)?,
+                name: parse_string(leaf, buf)?.to_string().to_string(),
                 unique_name: None,
             };
 
             if class.properties.has_unique_name() {
-                class.unique_name = Some(parse_string(leaf, buf)?);
+                class.unique_name = Some(parse_string(leaf, buf)?.to_string().to_string());
             }
 
             Ok(TypeData::Class(class))
@@ -112,12 +112,12 @@ pub(crate) fn parse_type_data<'t>(buf: &mut ParseBuffer<'t>) -> Result<TypeData<
                 vtable_shape: parse_optional_type_index(buf)?,
                 count: buf.parse_u16()?,
                 size: parse_unsigned(buf)?,
-                name: parse_string(leaf, buf)?,
+                name: parse_string(leaf, buf)?.to_string().to_string(),
                 unique_name: None,
             };
 
             if class.properties.has_unique_name() {
-                class.unique_name = Some(parse_string(leaf, buf)?);
+                class.unique_name = Some(parse_string(leaf, buf)?.to_string().to_string());
             }
 
             Ok(TypeData::Class(class))
@@ -128,7 +128,7 @@ pub(crate) fn parse_type_data<'t>(buf: &mut ParseBuffer<'t>) -> Result<TypeData<
             attributes: FieldAttributes(buf.parse_u16()?),
             field_type: buf.parse()?,
             offset: parse_unsigned(buf)?,
-            name: parse_string(leaf, buf)?,
+            name: parse_string(leaf, buf)?.to_string().to_string(),
         })),
 
         // https://github.com/Microsoft/microsoft-pdb/blob/082c5290e5aff028ae84e43affa8be717aa7af73/include/cvinfo.h#L2699-L2714
@@ -147,7 +147,7 @@ pub(crate) fn parse_type_data<'t>(buf: &mut ParseBuffer<'t>) -> Result<TypeData<
             Ok(TypeData::Nested(NestedType {
                 attributes: FieldAttributes(raw_attr),
                 nested_type: buf.parse()?,
-                name: parse_string(leaf, buf)?,
+                name: parse_string(leaf, buf)?.to_string().to_string(),
             }))
         }
 
@@ -166,7 +166,7 @@ pub(crate) fn parse_type_data<'t>(buf: &mut ParseBuffer<'t>) -> Result<TypeData<
         LF_METHOD | LF_METHOD_ST => Ok(TypeData::OverloadedMethod(OverloadedMethodType {
             count: buf.parse_u16()?,
             method_list: buf.parse()?,
-            name: parse_string(leaf, buf)?,
+            name: parse_string(leaf, buf)?.to_string().to_string(),
         })),
 
         // https://github.com/Microsoft/microsoft-pdb/blob/082c5290e5aff028ae84e43affa8be717aa7af73/include/cvinfo.h#L2671-L2678
@@ -181,7 +181,7 @@ pub(crate) fn parse_type_data<'t>(buf: &mut ParseBuffer<'t>) -> Result<TypeData<
                     // yes, this is variable length
                     None
                 },
-                name: parse_string(leaf, buf)?,
+                name: parse_string(leaf, buf)?.to_string().to_string(),
             }))
         }
 
@@ -212,7 +212,7 @@ pub(crate) fn parse_type_data<'t>(buf: &mut ParseBuffer<'t>) -> Result<TypeData<
         LF_STMEMBER | LF_STMEMBER_ST => Ok(TypeData::StaticMember(StaticMemberType {
             attributes: FieldAttributes(buf.parse_u16()?),
             field_type: buf.parse()?,
-            name: parse_string(leaf, buf)?,
+            name: parse_string(leaf, buf)?.to_string().to_string(),
         })),
 
         // https://github.com/Microsoft/microsoft-pdb/blob/082c5290e5aff028ae84e43affa8be717aa7af73/include/cvinfo.h#L1469-L1506
@@ -263,12 +263,12 @@ pub(crate) fn parse_type_data<'t>(buf: &mut ParseBuffer<'t>) -> Result<TypeData<
                 properties: TypeProperties(buf.parse_u16()?),
                 underlying_type: buf.parse()?,
                 fields: buf.parse()?,
-                name: parse_string(leaf, buf)?,
+                name: parse_string(leaf, buf)?.to_string().to_string(),
                 unique_name: None,
             };
 
             if enumeration.properties.has_unique_name() {
-                enumeration.unique_name = Some(parse_string(leaf, buf)?);
+                enumeration.unique_name = Some(parse_string(leaf, buf)?.to_string().to_string());
             }
 
             Ok(TypeData::Enumeration(enumeration))
@@ -278,7 +278,7 @@ pub(crate) fn parse_type_data<'t>(buf: &mut ParseBuffer<'t>) -> Result<TypeData<
         LF_ENUMERATE | LF_ENUMERATE_ST => Ok(TypeData::Enumerate(EnumerateType {
             attributes: FieldAttributes(buf.parse_u16()?),
             value: buf.parse()?,
-            name: parse_string(leaf, buf)?,
+            name: parse_string(leaf, buf)?.to_string().to_string(),
         })),
 
         // https://github.com/Microsoft/microsoft-pdb/blob/082c5290e5aff028ae84e43affa8be717aa7af73/include/cvinfo.h#L1564-L1579
@@ -337,12 +337,12 @@ pub(crate) fn parse_type_data<'t>(buf: &mut ParseBuffer<'t>) -> Result<TypeData<
                 properties: TypeProperties(buf.parse_u16()?),
                 fields: buf.parse()?,
                 size: parse_unsigned(buf)?,
-                name: parse_string(leaf, buf)?,
+                name: parse_string(leaf, buf)?.to_string().to_string(),
                 unique_name: None,
             };
 
             if union.properties.has_unique_name() {
-                union.unique_name = Some(parse_string(leaf, buf)?);
+                union.unique_name = Some(parse_string(leaf, buf)?.to_string().to_string());
             }
 
             Ok(TypeData::Union(union))
@@ -351,7 +351,7 @@ pub(crate) fn parse_type_data<'t>(buf: &mut ParseBuffer<'t>) -> Result<TypeData<
         // https://github.com/Microsoft/microsoft-pdb/blob/082c5290e5aff028ae84e43affa8be717aa7af73/include/cvinfo.h#L1669-L1673
         LF_ALIAS | LF_ALIAS_ST => Ok(TypeData::Alias(AliasType {
             underlying_type: buf.parse()?,
-            name: parse_string(leaf, buf)?,
+            name: parse_string(leaf, buf)?.to_string().to_string(),
         })),
 
         // https://github.com/microsoft/microsoft-pdb/issues/50#issuecomment-737890766
@@ -361,12 +361,12 @@ pub(crate) fn parse_type_data<'t>(buf: &mut ParseBuffer<'t>) -> Result<TypeData<
                 fields: buf.parse()?,
                 count: buf.parse_u16()?,
                 size: parse_unsigned(buf)?,
-                name: parse_string(leaf, buf)?,
+                name: parse_string(leaf, buf)?.to_string().to_string(),
                 unique_name: None,
             };
 
             if union.properties.has_unique_name() {
-                union.unique_name = Some(parse_string(leaf, buf)?);
+                union.unique_name = Some(parse_string(leaf, buf)?.to_string().to_string());
             }
 
             Ok(TypeData::Union(union))
@@ -416,7 +416,7 @@ pub(crate) fn parse_type_data<'t>(buf: &mut ParseBuffer<'t>) -> Result<TypeData<
             while len < names_length {
                 let s = buf.parse_cstring()?;
                 len += s.len() + 1;
-                vftable.names.push(s);
+                vftable.names.push(s.to_string().to_string());
             }
             assert_eq!(len, names_length);
 
@@ -438,7 +438,7 @@ pub(crate) fn parse_type_data<'t>(buf: &mut ParseBuffer<'t>) -> Result<TypeData<
 
         // https://github.com/Microsoft/microsoft-pdb/blob/082c5290e5aff028ae84e43affa8be717aa7af73/include/cvinfo.h#L2112-L2115
         LF_FIELDLIST => {
-            let mut fields: Vec<TypeData<'t>> = Vec::new();
+            let mut fields: Vec<TypeData> = Vec::new();
             let mut continuation: Option<TypeIndex> = None;
 
             while !buf.is_empty() {
@@ -1021,7 +1021,7 @@ impl VirtualTableShapeDescriptor {
 /// `LF_CLASS`, `LF_CLASS_ST`, `LF_STRUCTURE`, `LF_STRUCTURE_ST` or `LF_INTERFACE`.
 // https://github.com/Microsoft/microsoft-pdb/blob/082c5290e5aff028ae84e43affa8be717aa7af73/include/cvinfo.h#L1631
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ClassType<'t> {
+pub struct ClassType {
     pub kind: ClassKind,
 
     /// Count of number of elements in this class
@@ -1040,10 +1040,10 @@ pub struct ClassType<'t> {
     pub size: u64,
 
     /// Display name of the class including type parameters.
-    pub name: RawString<'t>,
+    pub name: String,
 
     /// Mangled name, if present.
-    pub unique_name: Option<RawString<'t>>,
+    pub unique_name: Option<String>,
 }
 
 /// Used by `ClassType` to distinguish class-like concepts.
@@ -1056,11 +1056,11 @@ pub enum ClassKind {
 
 /// The information parsed from a type record with kind `LF_MEMBER` or `LF_MEMBER_ST`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MemberType<'t> {
+pub struct MemberType {
     pub attributes: FieldAttributes,
     pub field_type: TypeIndex,
     pub offset: u64,
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
 /// The information parsed from a type record with kind `LF_MFUNCTION`.
@@ -1077,36 +1077,36 @@ pub struct MemberFunctionType {
 
 /// The information parsed from a type record with kind `LF_METHOD` or `LF_METHOD_ST`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct OverloadedMethodType<'t> {
+pub struct OverloadedMethodType {
     pub count: u16,
     pub method_list: TypeIndex,
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
 /// The information parsed from a type record with kind `LF_ONEMETHOD` or `LF_ONEMETHOD_ST`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MethodType<'t> {
+pub struct MethodType {
     pub attributes: FieldAttributes,
     pub method_type: TypeIndex,
     pub vtable_offset: Option<u32>,
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
 /// The information parsed from a type record with kind `LF_STMEMBER` or `LF_STMEMBER_ST`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StaticMemberType<'t> {
+pub struct StaticMemberType {
     pub attributes: FieldAttributes,
     pub field_type: TypeIndex,
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
 /// The information parsed from a type record with kind
 /// `LF_NESTTYPE`, `LF_NESTTYPE_ST`, `LF_NESTTYPEEX`, or `LF_NESTTYPEEX_ST`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NestedType<'t> {
+pub struct NestedType {
     pub attributes: FieldAttributes,
     pub nested_type: TypeIndex,
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
 /// The information parsed from a type record with kind `LF_BCLASS` or `LF_BINTERFACE`.
@@ -1146,11 +1146,11 @@ pub struct VirtualTableShapeType {
 
 /// The information parsed from a type record with kind `LF_VFTABLE`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct VirtualFunctionTableType<'t> {
+pub struct VirtualFunctionTableType {
     pub owner: TypeIndex,
     pub base: TypeIndex,
     pub object_offset: u32,
-    pub names: Vec<RawString<'t>>,
+    pub names: Vec<String>,
 }
 
 /// The information parsed from a type record with kind `LF_PROCEDURE`.
@@ -1181,21 +1181,21 @@ pub struct ModifierType {
 
 /// The information parsed from a type record with kind `LF_ENUM` or `LF_ENUM_ST`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct EnumerationType<'t> {
+pub struct EnumerationType {
     pub count: u16,
     pub properties: TypeProperties,
     pub underlying_type: TypeIndex,
     pub fields: TypeIndex,
-    pub name: RawString<'t>,
-    pub unique_name: Option<RawString<'t>>,
+    pub name: String,
+    pub unique_name: Option<String>,
 }
 
 /// The information parsed from a type record with kind `LF_ENUMERATE` or `LF_ENUMERATE_ST`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct EnumerateType<'t> {
+pub struct EnumerateType {
     pub attributes: FieldAttributes,
     pub value: Variant,
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
 /// The information parsed from a type record with kind
@@ -1220,20 +1220,20 @@ pub struct ArrayType {
 
 /// The information parsed from a type record with kind `LF_UNION` or `LF_UNION_ST`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct UnionType<'t> {
+pub struct UnionType {
     pub count: u16,
     pub properties: TypeProperties,
     pub fields: TypeIndex,
     pub size: u64,
-    pub name: RawString<'t>,
-    pub unique_name: Option<RawString<'t>>,
+    pub name: String,
+    pub unique_name: Option<String>,
 }
 
 /// The information parsed from a type record with kind `LF_ALIAS` or `LF_ALIAS_ST`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AliasType<'t> {
+pub struct AliasType {
     pub underlying_type: TypeIndex,
-    pub name: RawString<'t>,
+    pub name: String,
 }
 
 /// The information parsed from a type record with kind `LF_BITFIELD`.
@@ -1246,8 +1246,8 @@ pub struct BitfieldType {
 
 /// The information parsed from a type record with kind `LF_FIELDLIST`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FieldList<'t> {
-    pub fields: Vec<TypeData<'t>>,
+pub struct FieldList {
+    pub fields: Vec<TypeData>,
 
     /// Sometimes fields can't all fit in a single `FieldList`, in which case the `FieldList`
     /// refers to another `FieldList` in a chain.
@@ -1307,8 +1307,8 @@ fn kind_1609() {
             derived_from: None,
             vtable_shape: None,
             size: 6,
-            name: RawString::from("H_size"),
-            unique_name: Some(RawString::from(".?AUH_size@@")),
+            name: "H_size".to_owned(),
+            unique_name: Some(String::from(".?AUH_size@@")),
         })
     );
 }

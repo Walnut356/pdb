@@ -238,23 +238,23 @@ impl FallibleIterator for BinaryAnnotationsIter<'_> {
 /// stream. The X64 unwind code and the DWARF standard have a similar design.
 ///
 /// Binary annotations are primarily used as line programs for inline function calls.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct BinaryAnnotations<'t> {
-    data: &'t [u8],
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct BinaryAnnotations {
+    data: Box<[u8]>,
 }
 
-impl<'t> BinaryAnnotations<'t> {
+impl BinaryAnnotations {
     /// Creates a new instance of binary annotations.
     #[must_use]
-    pub(crate) fn new(data: &'t [u8]) -> Self {
-        BinaryAnnotations { data }
+    pub(crate) fn new(data: &[u8]) -> Self {
+        BinaryAnnotations { data: data.into() }
     }
 
     /// Iterates through binary annotations.
     #[must_use]
-    pub fn iter(&self) -> BinaryAnnotationsIter<'t> {
+    pub fn iter(&self) -> BinaryAnnotationsIter {
         BinaryAnnotationsIter {
-            buffer: ParseBuffer::from(self.data),
+            buffer: ParseBuffer::from(self.data.as_ref()),
         }
     }
 }

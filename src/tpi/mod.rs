@@ -513,7 +513,7 @@ impl<'t> Item<'t, TypeIndex> {
     /// * `Error::UnimplementedTypeKind(kind)` if the type record isn't currently understood by this
     ///   library
     /// * `Error::UnexpectedEof` if the type record is malformed
-    pub fn parse(&self) -> Result<TypeData<'t>> {
+    pub fn parse(&self) -> Result<TypeData> {
         if self.index < TypeIndex(0x1000) {
             // Primitive type
             type_data_for_primitive(self.index)

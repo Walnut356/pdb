@@ -191,7 +191,7 @@ pub enum Indirection {
     Near128,
 }
 
-pub fn type_data_for_primitive(index: TypeIndex) -> Result<TypeData<'static>> {
+pub fn type_data_for_primitive(index: TypeIndex) -> Result<TypeData> {
     // https://github.com/Microsoft/microsoft-pdb/blob/082c5290e5aff028ae84e43affa8be717aa7af73/include/cvinfo.h#L326-L750
 
     // primitives live under 0x1000, and we should never reach here for non-primitive indexes
