@@ -20,11 +20,11 @@ mod id;
 mod primitive;
 
 use self::header::*;
-use self::primitive::type_data_for_primitive;
+// use self::primitive::type_data_for_primitive;
 
 pub use self::data::*;
 pub use self::id::*;
-pub use self::primitive::{Indirection, PrimitiveKind, PrimitiveType};
+pub use self::primitive::{Indirection, PrimitiveKind, PrimitiveType, type_data_for_primitive};
 
 /// Zero-copy access to a PDB type or id stream.
 ///
